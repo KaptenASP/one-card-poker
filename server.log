@@ -37,3 +37,32 @@
 ✓ Compiled in 26ms
 ✓ Compiled in 34ms
 ✓ Compiled in 14ms
+✓ Compiled in 103ms
+✓ Compiled in 72ms
+✓ Compiled in 69ms
+✓ Compiled in 74ms
+⨯ ./src/app/globals.css:683:8
+Parsing CSS source code failed
+[0m [90m 681 |[39m   }
+ [90m 682 |[39m }
+[31m[1m>[22m[39m[90m 683 |[39m [33m@[39m[36mimport[39m url([32m'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap'[39m)[33m;[39m
+ [90m     |[39m        [31m[1m^[22m[39m
+ [90m 684 |[39m [33m:[39mroot {
+ [90m 685 |[39m   [33m--[39mbackground[33m:[39m [33m#[39m[35m0[39ma0a0a[33m;[39m
+ [90m 686 |[39m   [33m--[39mforeground[33m:[39m [33m#[39me5e5e5[33m;[39m[0m
+
+@import rules must precede all rules aside from @charset and @layer statements
+
+Import trace:
+  Client Component Browser:
+    ./src/app/globals.css [Client Component Browser]
+    ./src/app/layout.tsx [Server Component]
+
+
+ GET / 500 in 623ms (compile: 538ms, render: 84ms)
+✓ Compiled in 45ms
+ GET / 200 in 204ms (compile: 148ms, render: 55ms)
+✓ Compiled in 55ms
+✓ Compiled in 103ms
+✓ Compiled in 21ms
+ GET / 200 in 107ms (compile: 57ms, render: 51ms)

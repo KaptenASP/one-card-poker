@@ -4,108 +4,105 @@ import React, { useEffect } from 'react';
 import { useGameStore } from '@/lib/game/store';
 import { useGameLoop } from '@/lib/game/engine';
 import { Player } from '@/types';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-
-// Fixed positions for 6 max players
-const positions = [
-  { left: '50%', top: '90%', transform: 'translate(-50%, -50%)' }, // User (Bottom)
-  { left: '15%', top: '75%', transform: 'translate(-50%, -50%)' }, // Btm Left
-  { left: '15%', top: '25%', transform: 'translate(-50%, -50%)' }, // Top Left
-  { left: '50%', top: '10%', transform: 'translate(-50%, -50%)' }, // Top Center
-  { left: '85%', top: '25%', transform: 'translate(-50%, -50%)' }, // Top Right
-  { left: '85%', top: '75%', transform: 'translate(-50%, -50%)' }, // Btm Right
+// Desktop positions (percentage based, for the oval)
+const desktopPositions = [
+  { left: '50%', top: '88%', transform: 'translate(-50%, -50%)' },  // User (Bottom)
+  { left: '10%', top: '68%', transform: 'translate(-50%, -50%)' },  // Btm Left
+  { left: '10%', top: '32%', transform: 'translate(-50%, -50%)' },  // Top Left
+  { left: '50%', top: '12%', transform: 'translate(-50%, -50%)' },  // Top Center
+  { left: '90%', top: '32%', transform: 'translate(-50%, -50%)' },  // Top Right
+  { left: '90%', top: '68%', transform: 'translate(-50%, -50%)' },  // Btm Right
 ];
 
-function Card({ rank, suit, isHidden = false }: { rank: number; suit: string; isHidden?: boolean }) {
+// Mobile: 3 column grid-like layout
+const mobilePositions = [
+  { left: '50%', top: '92%', transform: 'translate(-50%, -50%)' },  // User (Bottom center)
+  { left: '18%', top: '72%', transform: 'translate(-50%, -50%)' },  // Mid left
+  { left: '18%', top: '28%', transform: 'translate(-50%, -50%)' },  // Top left
+  { left: '50%', top: '8%',  transform: 'translate(-50%, -50%)' },  // Top center
+  { left: '82%', top: '28%', transform: 'translate(-50%, -50%)' },  // Top right
+  { left: '82%', top: '72%', transform: 'translate(-50%, -50%)' },  // Mid right
+];
+
+function CardDisplay({ rank, suit, isHidden = false }: { rank: number; suit: string; isHidden?: boolean }) {
   if (isHidden) {
     return (
-      <div className="w-12 h-16 rounded-md bg-gradient-to-br from-red-700 to-red-900 border-2 border-slate-300 shadow-md flex items-center justify-center">
-        <div className="w-8 h-12 border border-red-400 opacity-50 rounded-sm"></div>
+      <div className="w-8 h-11 sm:w-10 sm:h-14 rounded bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center">
+        <div className="w-4 h-6 sm:w-5 sm:h-8 rounded-sm border border-[#333] opacity-40" />
       </div>
     );
   }
 
   const isRed = suit === 'hearts' || suit === 'diamonds';
-  let suitChar = '♠';
-  if (suit === 'hearts') suitChar = '♥';
-  if (suit === 'diamonds') suitChar = '♦';
-  if (suit === 'clubs') suitChar = '♣';
-
-  let rankChar = rank.toString();
-  if (rank === 11) rankChar = 'J';
-  if (rank === 12) rankChar = 'Q';
-  if (rank === 13) rankChar = 'K';
-  if (rank === 14) rankChar = 'A';
+  const suitMap: Record<string, string> = { hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠' };
+  const rankMap: Record<number, string> = { 11: 'J', 12: 'Q', 13: 'K', 14: 'A' };
+  const suitChar = suitMap[suit] || '♠';
+  const rankChar = rankMap[rank] || rank.toString();
 
   return (
-    <div className="w-12 h-16 bg-white rounded-md border border-slate-300 shadow-md flex flex-col justify-between items-center py-1 font-bold">
-      <div className={cn("text-sm self-start pl-1 leading-none", isRed ? "text-red-500" : "text-black")}>
+    <div className="w-8 h-11 sm:w-10 sm:h-14 bg-white rounded border border-[#e5e5e5] flex flex-col justify-between items-center py-0.5 sm:py-1">
+      <span className={`text-[10px] sm:text-xs font-semibold self-start pl-0.5 sm:pl-1 leading-none ${isRed ? 'text-red-500' : 'text-[#0a0a0a]'}`}>
         {rankChar}
-      </div>
-      <div className={cn("text-2xl", isRed ? "text-red-500" : "text-black")}>
+      </span>
+      <span className={`text-sm sm:text-lg leading-none ${isRed ? 'text-red-500' : 'text-[#0a0a0a]'}`}>
         {suitChar}
-      </div>
+      </span>
     </div>
   );
 }
 
-function PlayerAvatar({ player, index, isCurrentTurn, isDealer }: { player: Player; index: number; isCurrentTurn: boolean; isDealer: boolean }) {
+function PlayerSeat({ player, index, isCurrentTurn, isDealer, isMobile }: { 
+  player: Player; index: number; isCurrentTurn: boolean; isDealer: boolean; isMobile: boolean;
+}) {
   const { stage } = useGameStore(s => s.state);
-  
-  // Only reveal bot cards at showdown
   const showCards = player.botArchetype === 'user' || stage === 'complete';
+  const isUser = player.botArchetype === 'user';
+  const positions = isMobile ? mobilePositions : desktopPositions;
 
   return (
     <div 
-      className={cn(
-        "absolute flex flex-col items-center transition-all duration-300",
-        !player.isActive && "opacity-50 grayscale"
-      )}
+      className={`absolute flex flex-col items-center transition-all duration-200 ${!player.isActive ? 'opacity-30' : ''}`}
       style={positions[index]}
     >
-      {/* Current Bet indicator */}
+      {/* Bet chip */}
       {player.currentBet > 0 && (
-        <div className="absolute -top-12 bg-amber-500 text-black px-3 py-1 rounded-full text-xs font-bold shadow-sm whitespace-nowrap animate-in zoom-in">
-          Bet: {player.currentBet}
+        <div className="absolute -top-7 sm:-top-9 text-[10px] sm:text-[11px] font-mono font-medium text-[#10b981] bg-[#10b981]/10 border border-[#10b981]/20 px-1.5 sm:px-2 py-0.5 rounded-full">
+          {player.currentBet}
         </div>
       )}
 
-      {/* Dealer Button */}
+      {/* Dealer */}
       {isDealer && (
-        <div className="absolute -right-5 -top-2 bg-white text-black w-6 h-6 rounded-full flex items-center justify-center text-xs font-extrabold shadow-md border-2 border-slate-300 z-10">
+        <div className="absolute -right-2 sm:-right-4 -top-0.5 sm:-top-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#fbbf24] text-[#0a0a0a] text-[8px] sm:text-[9px] font-bold flex items-center justify-center z-10">
           D
         </div>
       )}
 
-      {/* Cards */}
+      {/* Card */}
       {player.hand.length > 0 && player.isActive && (
-        <div className="flex gap-1 -mb-6 z-10">
+        <div className="-mb-4 sm:-mb-5 z-10">
           {player.hand.map((c, i) => (
-            <Card key={i} rank={c.rank} suit={c.suit} isHidden={!showCards} />
+            <CardDisplay key={i} rank={c.rank} suit={c.suit} isHidden={!showCards} />
           ))}
         </div>
       )}
 
-      {/* Avatar Container */}
-      <div className={cn(
-        "bg-slate-800 border-2 rounded-xl p-3 min-w-[130px] shadow-xl relative z-20 flex flex-col items-center",
-        isCurrentTurn ? "border-green-400 ring-4 ring-green-500/20 shadow-green-500/30" : "border-slate-600",
-        player.botArchetype === 'user' ? "shadow-blue-500/20" : ""
-      )}>
-        <span className="text-white font-bold text-sm tracking-wide truncate max-w-full">
+      {/* Name plate */}
+      <div className={`
+        relative z-20 flex flex-col items-center px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg min-w-[72px] sm:min-w-[110px]
+        bg-[#111111] border transition-all duration-200
+        ${isCurrentTurn ? 'border-[#10b981]/50 shadow-[0_0_12px_rgba(16,185,129,0.08)]' : 'border-[#1a1a1a]'}
+        ${isUser ? 'border-[#2a2a2a]' : ''}
+      `}>
+        <span className={`text-[11px] sm:text-[13px] font-medium truncate max-w-full ${isUser ? 'text-[#e5e5e5]' : 'text-[#a3a3a3]'}`}>
           {player.name}
         </span>
-        <span className="text-amber-400 font-mono text-sm mt-1 rounded bg-black/40 px-2 py-0.5">
-          ${player.chips}
+        <span className="text-[10px] sm:text-[12px] font-mono text-[#fbbf24] mt-0.5">
+          {player.chips}
         </span>
-        
-        {player.botArchetype !== 'user' && (
-          <span className="text-slate-500 text-[10px] uppercase font-bold mt-1 tracking-wider text-center line-clamp-1">
+        {!isUser && (
+          <span className="text-[7px] sm:text-[9px] text-[#404040] uppercase tracking-widest mt-0.5 font-medium hidden sm:block">
             {player.botArchetype.replace('-', ' ')}
           </span>
         )}
@@ -116,10 +113,17 @@ function PlayerAvatar({ player, index, isCurrentTurn, isDealer }: { player: Play
 
 export function PokerTable() {
   const { state, dealerIndex, startHand, applyAction, advanceTurn } = useGameStore();
+  const [isMobile, setIsMobile] = React.useState(false);
 
-  useGameLoop(); // Start the bot automation engine
+  useGameLoop();
 
-  // Auto-start hand on mount if needed
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
   useEffect(() => {
     if (state.stage === 'complete' && state.players[0].hand.length === 0) {
       startHand();
@@ -139,50 +143,57 @@ export function PokerTable() {
   const callAmount = user ? state.highestBet - user.currentBet : 0;
 
   return (
-    <div className="w-full h-full min-h-[700px] flex flex-col items-center justify-center p-8 relative">
-      <div className="text-center mb-8">
-        <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-green-500 mb-2">
-          Boring Poker 1-Card Trainer
+    <div className="w-full flex flex-col items-center justify-center relative px-2 sm:px-0">
+      {/* Header */}
+      <div className="text-center mb-6 sm:mb-10 mt-12 sm:mt-0">
+        <h1 className="text-xl sm:text-2xl font-semibold text-[#e5e5e5] tracking-tight">
+          Boring Poker
         </h1>
-        <p className="text-slate-400 font-medium">Learn optimal pushing frequencies through exact combinatorics.</p>
+        <p className="text-[11px] sm:text-[13px] text-[#525252] mt-1 font-normal">
+          1-card Hold&apos;em · 6-max · exact combinatorics
+        </p>
       </div>
 
-      {/* The Table */}
-      <div className="relative w-full max-w-4xl aspect-[2/1] bg-gradient-to-b from-green-700 to-emerald-950 border-[20px] border-amber-950 rounded-full shadow-[inset_0_0_80px_rgba(0,0,0,0.8),0_20px_50px_rgba(0,0,0,0.5)] flex items-center justify-center">
-        {/* Pot Area */}
-        <div className="absolute inset-0 m-auto w-48 h-24  flex flex-col items-center justify-center bg-black/30 rounded-full backdrop-blur-sm border border-white/5">
-          <span className="text-slate-400 text-sm font-bold tracking-widest uppercase mb-1">Total Pot</span>
-          <span className="text-amber-400 font-mono text-3xl font-extrabold">${state.pot}</span>
+      {/* Table */}
+      <div className="relative w-full max-w-3xl aspect-[3/4] sm:aspect-[2/1] rounded-[40%] sm:rounded-[50%] bg-gradient-to-b from-[#0f3d2a] to-[#0a2e1f] border border-[#1a4a35] shadow-[inset_0_0_60px_rgba(0,0,0,0.6)] flex items-center justify-center">
+        {/* Rail */}
+        <div className="absolute inset-[-8px] sm:inset-[-12px] rounded-[40%] sm:rounded-[50%] border-4 sm:border-[6px] border-[#1a1a1a] pointer-events-none" />
+
+        {/* Pot */}
+        <div className="flex flex-col items-center justify-center">
+          <span className="text-[9px] sm:text-[10px] text-[#525252] uppercase tracking-[0.2em] font-medium">Pot</span>
+          <span className="text-xl sm:text-2xl font-mono font-semibold text-[#fbbf24] mt-0.5">{state.pot}</span>
         </div>
 
         {/* Players */}
         {state.players.map((p, idx) => (
-          <PlayerAvatar 
+          <PlayerSeat 
             key={p.id} 
             player={p} 
             index={p.seatIndex} 
             isCurrentTurn={state.stage === 'preflop' && state.currentTurn === idx} 
             isDealer={dealerIndex === idx}
+            isMobile={isMobile}
           />
         ))}
 
-        {/* Action Log / Result Banner */}
+        {/* Winner banner */}
         {state.stage === 'complete' && state.actionLog.length > 0 && (
-          <div className="absolute -bottom-8 bg-green-500 text-black px-6 py-2 rounded-full font-bold shadow-lg shadow-green-500/20 border-2 border-green-400 animate-in fade-in slide-in-from-bottom-5">
+          <div className="absolute -bottom-5 sm:-bottom-6 text-[10px] sm:text-[12px] font-medium text-[#10b981] bg-[#10b981]/8 border border-[#10b981]/15 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full max-w-[90%] text-center truncate">
             {state.actionLog[state.actionLog.length - 1]}
           </div>
         )}
       </div>
 
-      {/* User Controls */}
-      <div className={cn(
-        "mt-16 flex items-center justify-center gap-4 transition-all duration-300",
-        state.stage === 'complete' ? "opacity-100" : (isUserTurn ? "opacity-100 translate-y-0" : "opacity-30 translate-y-4 pointer-events-none grayscale")
-      )}>
+      {/* Controls */}
+      <div className={`
+        mt-10 sm:mt-14 flex flex-wrap items-center justify-center gap-2 transition-all duration-200 px-2
+        ${state.stage === 'complete' ? 'opacity-100' : (isUserTurn ? 'opacity-100' : 'opacity-20 pointer-events-none')}
+      `}>
         {state.stage === 'complete' ? (
           <button 
             onClick={startHand}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 px-12 rounded-xl text-lg shadow-lg shadow-emerald-600/30 transition-all hover:scale-105 active:scale-95 border-b-4 border-emerald-800"
+            className="h-10 px-6 bg-[#111111] hover:bg-[#191919] text-[#e5e5e5] text-[13px] font-medium rounded-lg border border-[#2a2a2a] hover:border-[#333] transition-all"
           >
             Deal Next Hand
           </button>
@@ -190,15 +201,15 @@ export function PokerTable() {
           <>
             <button 
               onClick={() => handleAction('fold')}
-              className="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg transition-all hover:scale-105 active:scale-95 border-b-4 border-slate-900"
+              className="h-9 sm:h-10 px-4 sm:px-5 bg-[#111111] hover:bg-[#191919] text-[#737373] hover:text-[#e5e5e5] text-[12px] sm:text-[13px] font-medium rounded-lg border border-[#1a1a1a] hover:border-[#2a2a2a] transition-all"
             >
               Fold
             </button>
             <button 
               onClick={() => handleAction('call')}
-              className="bg-green-700 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg transition-all hover:scale-105 active:scale-95 border-b-4 border-green-900 min-w-[140px]"
+              className="h-9 sm:h-10 px-4 sm:px-5 bg-[#111111] hover:bg-[#191919] text-[#e5e5e5] text-[12px] sm:text-[13px] font-medium rounded-lg border border-[#2a2a2a] hover:border-[#333] transition-all"
             >
-              {callAmount === 0 ? 'Check' : callAmount >= (user?.chips ?? 0) ? `All-In (${user?.chips})` : `Call ${callAmount}`}
+              {callAmount === 0 ? 'Check' : callAmount >= (user?.chips ?? 0) ? `All-In · ${user?.chips}` : `Call · ${callAmount}`}
             </button>
             {(() => {
               if (!user || user.chips <= 0) return null;
@@ -206,23 +217,15 @@ export function PokerTable() {
               const toCall = Math.max(0, state.highestBet - user.currentBet);
               const chipsAfterCall = chipsLeft - Math.min(toCall, chipsLeft);
               
-              // If calling alone would be all-in, no raise options
               if (chipsAfterCall <= 0) return null;
               
               const base = state.lastRaiseAmount;
               const raiseOptions = [
-                { label: `2×`, amount: base * 2 },
-                { label: `4×`, amount: base * 4 },
-                { label: `5×`, amount: base * 5 },
+                { amount: base * 2 },
+                { amount: base * 4 },
+                { amount: base * 5 },
               ];
               
-              const colors = [
-                'bg-rose-600 hover:bg-rose-500 border-rose-800',
-                'bg-rose-700 hover:bg-rose-600 border-rose-900',
-                'bg-rose-800 hover:bg-rose-700 border-rose-950',
-              ];
-
-              // Filter to only options the player can afford and deduplicate 
               const seen = new Set<number>();
               const buttons: React.ReactNode[] = [];
               let allInAdded = false;
@@ -232,16 +235,15 @@ export function PokerTable() {
                 const totalNeeded = toCall + opt.amount;
                 
                 if (totalNeeded >= chipsLeft) {
-                  // This raise would be all-in or more — show one All-In button
                   if (!allInAdded) {
                     allInAdded = true;
                     buttons.push(
                       <button 
                         key="all-in"
                         onClick={() => handleAction('raise', chipsLeft)}
-                        className={`text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all hover:scale-105 active:scale-95 border-b-4 ${colors[i]}`}
+                        className="h-9 sm:h-10 px-4 sm:px-5 bg-[#10b981]/10 hover:bg-[#10b981]/15 text-[#10b981] text-[12px] sm:text-[13px] font-medium rounded-lg border border-[#10b981]/20 hover:border-[#10b981]/30 transition-all"
                       >
-                        All-In ({chipsLeft})
+                        All-In · {chipsLeft}
                       </button>
                     );
                   }
@@ -251,9 +253,9 @@ export function PokerTable() {
                     <button 
                       key={opt.amount}
                       onClick={() => handleAction('raise', opt.amount)}
-                      className={`text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all hover:scale-105 active:scale-95 border-b-4 ${colors[i]}`}
+                      className="h-9 sm:h-10 px-4 sm:px-5 bg-[#111111] hover:bg-[#191919] text-[#a3a3a3] hover:text-[#e5e5e5] text-[12px] sm:text-[13px] font-medium rounded-lg border border-[#1a1a1a] hover:border-[#2a2a2a] transition-all"
                     >
-                      Raise +{opt.amount}
+                      +{opt.amount}
                     </button>
                   );
                 }
